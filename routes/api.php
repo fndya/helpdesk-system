@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\TicketController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -19,3 +20,7 @@ Route::middleware('auth:sanctum')->post('/logout', [
     AuthController::class,
     'logout',
 ]);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/tickets', [TicketController::class, 'store']);
+});
