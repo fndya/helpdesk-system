@@ -1,58 +1,87 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Helpdesk System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Helpdesk System is a REST API for user authentication and support tickets. The active backend is NestJS with TypeScript and Prisma, backed by the existing PostgreSQL database. Users can register and sign in, then create and list tickets. `USER` accounts see their own tickets; `SUPPORT` and `ADMIN` accounts see all tickets.
 
-## About Laravel
+## Requirements
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Docker Engine with Docker Compose
+- Node.js and npm
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Laravel has been retired. Its migrations are kept as historical schema records; do not replay them against the shared database.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Local setup
 
-## Learning Laravel
+The repository includes a separate PostgreSQL container for local development. It listens only on `127.0.0.1:5433`, uses database `helpdesk_dev`, and stores data in a named Docker volume. It does not connect to or alter the existing `helpdesk` database.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```sh
+cp -n .env.example .env.db
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Edit `.env.db`: replace the database password placeholder in both `POSTGRES_PASSWORD` and `DATABASE_URL` with the same random 48-character hex value, and set `JWT_SECRET` to a random value of at least 32 characters. For example, generate values with `openssl rand -hex 24` and `openssl rand -base64 32`. `.env.db` is ignored by Git; never commit it.
 
-## Contributing
+Start the local database:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```sh
+docker compose --env-file .env.db up -d postgres
+```
 
-## Code of Conduct
+Install and start the API, applying the checked-in Prisma migrations to this new local database on first setup:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```sh
+cd nestjs
+npm ci
+set -a
+. ../.env.db
+set +a
+npx prisma migrate deploy
+npm run start:dev
+```
 
-## Security Vulnerabilities
+The application reads environment variables directly; sourcing `.env.db` exports the database URL and JWT secret for Prisma and NestJS. It does not load a local `.env` file itself.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+The API listens on `http://localhost:3000` by default. Set `PORT` to use another port. For the frontend, use `http://localhost:3000/api` as the API base URL.
 
-## License
+Use `docker compose --env-file .env.db stop postgres` to stop the local database; its named volume keeps data between runs. Do not use `docker compose down -v` or remove the volume if you need to keep that data.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+To connect the API to an existing PostgreSQL database instead, set `DATABASE_URL` to that database and skip the Compose startup. Never recreate or reset the existing database, delete its data, run `prisma db push`, or run migrations against it without explicit approval. The Prisma baseline describes the existing schema and must not be replayed as new-table SQL. See [`nestjs/README.md`](nestjs/README.md) for the existing-database migration procedure and [`AGENTS.md`](AGENTS.md) for database safety rules.
+
+## API
+
+All routes use the `/api` prefix.
+
+| Method | Route | Purpose | Access |
+| --- | --- | --- | --- |
+| `POST` | `/api/register` | Register a user | Public |
+| `POST` | `/api/login` | Sign in and receive tokens | Public |
+| `POST` | `/api/refresh` | Rotate a refresh token | Public, refresh token required |
+| `GET` | `/api/user` | Get the current user | Access token required |
+| `POST` | `/api/logout` | Revoke the refresh-token family | Access token required |
+| `POST` | `/api/tickets` | Create a ticket | Access token required |
+| `GET` | `/api/tickets` | List visible tickets | Access token required |
+
+Access tokens last 15 minutes. Refresh tokens rotate and last 7 days. Logout revokes the refresh-token family; an already-issued access token can remain valid until it expires.
+
+## Development commands
+
+Run these from `nestjs/`:
+
+| Command | Purpose |
+| --- | --- |
+| `npm run start:dev` | Start the watch-mode API server |
+| `npm test` | Run unit and API tests |
+| `npm run test:e2e` | Run PostgreSQL endpoint tests against `DATABASE_URL_TEST` |
+| `npm run lint` | Run Oxlint |
+| `npm run build` | Build the production application |
+
+The E2E database must be isolated from shared or production data. Set `DATABASE_URL_TEST` only to a dedicated test database/schema and prepare it using the approved migration process.
+
+## Project layout
+
+- `nestjs/src/auth/` — registration, login, refresh, logout, and current-user endpoints
+- `nestjs/src/tickets/` — ticket creation, listing, and visibility rules
+- `nestjs/src/prisma/` — PostgreSQL connection and Prisma client
+- `nestjs/prisma/` — Prisma schema and migration history
+- `database/migrations/` — preserved historical Laravel schema migrations; not for replay
+- `docs/ai/migration-audit.md` — recorded legacy API behavior, compatibility decisions, and known risks
+
+NestJS is organized by feature modules. Controllers handle HTTP concerns, services hold business rules, DTOs validate input, and Prisma accesses PostgreSQL. See [`nestjs/README.md`](nestjs/README.md) for additional database and test setup details.

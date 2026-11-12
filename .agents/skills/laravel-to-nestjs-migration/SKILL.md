@@ -1,28 +1,28 @@
 ---
 name: laravel-to-nestjs-migration
-description: Migrate Helpdesk behavior from the Laravel reference backend to NestJS while preserving API and shared PostgreSQL compatibility. Use for migration planning, implementation, or verification; not for unrelated Laravel or NestJS work.
+description: Consult the retired Laravel contract when maintaining NestJS compatibility. Use for historical migration context, not new Laravel implementation.
 ---
 
 # Laravel to NestJS Migration
 
-Use this skill whenever work moves Helpdesk backend behavior from Laravel to NestJS, including planning, implementation, compatibility review, and cutover preparation.
+Use this skill for compatibility questions or follow-up changes based on the retired Laravel backend. Laravel runtime code is no longer present; use `docs/ai/migration-audit.md` as the historical contract record. Do not create new Laravel code.
 
 ## Invariants
 
-- Laravel is the behavioral reference; NestJS is the target. Verify rules in Laravel before porting them. Label behavior **verified** only when supported by Laravel code or observed tests; state assumptions explicitly and resolve them before relying on them.
-- Both backends coexist during migration. Keep Laravel operational until NestJS behavior is verified and cutover is explicitly approved.
+- Laravel was the behavioral reference; NestJS is the active target. Treat only behaviors supported by the audit's recorded source inspection/tests as **verified**. The Laravel source has been retired, so do not claim new runtime verification against it.
+- Both backends coexisted during migration. Retirement was explicitly approved after parity checks; do not restore Laravel runtime as part of ordinary work.
 - PostgreSQL is the existing shared source of truth. Never recreate, reset, delete data from, or perform destructive operations against it. Never execute destructive database operations, `prisma db push`, or Prisma migrations without explicit approval for the specific operation.
 - Preserve routes, methods, status codes, input validation, authorization, and response shape/semantics. Treat deviations as intentional only with explicit approval.
-- Implement and verify in small, independently reviewable slices. Do not switch production traffic or retire Laravel as an incidental part of implementation.
+- Keep follow-up compatibility changes small and independently reviewable. Do not restore Laravel runtime or change shared database state without explicit approval.
 
 ## Workflow
 
-1. Inspect repository instructions and relevant Laravel routes, controllers, requests, resources, policies, services, models, enums, tests, and database schema. Inspect the NestJS target and existing project skills before choosing an implementation.
-2. Map the requested behavior end to end. Record its Laravel source and what is verified, unknown, or assumed. Ask for clarification when an unknown affects compatibility or data safety.
-3. Define the smallest migration slice and its contract: affected endpoint/behavior, expected responses and authorization, database reads/writes, and tests. Keep Laravel unchanged unless explicitly requested.
+1. Inspect repository instructions, the historical audit, relevant NestJS code, and existing project skills.
+2. Map the requested behavior using the audit and tests. Distinguish recorded Laravel facts from unknowns and assumptions.
+3. Define the smallest compatibility slice and its contract using the audit and NestJS tests: affected endpoint/behavior, expected responses and authorization, database reads/writes, and tests.
 4. Implement the target slice following the existing NestJS architecture. Keep changes additive and compatible with shared PostgreSQL. Do not change schema or run database writes/migrations without the approval described above.
 5. Compare Laravel and NestJS behavior with equivalent tests or fixtures. Fix discrepancies before marking the slice verified. Report unverified cases and assumptions.
-6. Review the diff, data-safety implications, and Laravel availability. Mark migration complete only when completion criteria below are met; cutover or Laravel retirement requires separate explicit approval.
+6. Review the diff and data-safety implications. The migration and Laravel retirement are complete; do not perform database cleanup without operation-specific explicit approval.
 
 ## Component mapping
 
@@ -44,7 +44,7 @@ Read `.agents/skills/nestjs-architecture/SKILL.md`, `.agents/skills/prisma-postg
 
 ## Authentication migration
 
-- Inspect Sanctum configuration, guards, token issuance and expiry, revocation/logout, credential validation, password hashing, middleware, and tests in Laravel. Record what clients actually send and receive.
+- Consult the audit's recorded Sanctum configuration, guards, token issuance and expiry, revocation/logout, credential validation, password hashing, middleware, and test findings.
 - Do not assume JWT is equivalent to Sanctum or silently choose a token strategy. Identify compatibility and lifecycle implications, and get approval for an authentication design change before implementing it.
 - Preserve existing authentication behavior for the migrated slice, including unauthorized status and response behavior. Never expose or log credentials, password hashes, or tokens. Do not copy plaintext secrets into code or artifacts.
 
@@ -56,7 +56,7 @@ Read `.agents/skills/nestjs-architecture/SKILL.md`, `.agents/skills/prisma-postg
 
 ## Database compatibility
 
-- Inspect the existing PostgreSQL schema and Laravel model mappings before designing Prisma models. Keep table/column names, types, nullability, defaults, keys, relations, and enum representation compatible.
+- Consult the recorded PostgreSQL schema findings and Prisma mappings. Keep table/column names, types, nullability, defaults, keys, relations, and enum representation compatible.
 - Treat Prisma schema declarations as descriptions of the existing database until a schema change is explicitly approved. Do not use `db push`, migrations, reset, destructive SQL, or data-changing scripts without operation-specific explicit approval.
 - Prefer read-only schema inspection. Do not connect to or modify a database unless the user has authorized that access for the task. Never expose credentials.
 - For each migrated write, compare transaction boundaries, constraints, defaults, timestamps, and failure behavior. Avoid dual writes unless a reviewed design defines consistency and recovery.
@@ -70,7 +70,7 @@ For each endpoint or behavior, compare Laravel and NestJS on:
 - Success and failure status codes, response envelope, field names/types/nullability, ordering/pagination, and side effects.
 - Edge cases established by Laravel tests or implementation.
 
-Use Laravel behavior as the expected contract, while distinguishing observed implementation details from intentional documented guarantees. Do not claim parity based only on matching happy paths.
+Use verified historical Laravel behavior in the audit as the expected contract, while distinguishing observed implementation details from intentional documented guarantees. Do not claim parity based only on matching happy paths.
 
 ## Testing requirements
 
@@ -87,4 +87,4 @@ Use Laravel behavior as the expected contract, while distinguishing observed imp
 
 ## Completion criteria
 
-A migration slice is complete only when its Laravel behavior is traced and verified (or remaining uncertainty is explicitly accepted), the NestJS contract matches the verified behavior, required tests pass, database compatibility and security are reviewed, and Laravel remains operational. The overall migration is not complete until all in-scope slices meet these conditions and cutover/retirement is separately approved.
+A follow-up compatibility change is complete when the behavior is grounded in the historical audit or explicitly identified as uncertain, the NestJS contract is tested, database compatibility and security are reviewed, and relevant checks pass. The Laravel runtime has been retired; preserve its migrations as historical records.

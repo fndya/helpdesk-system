@@ -3,24 +3,10 @@
 
 ## 1. Project Overview
 
-We are building a Helpdesk System.
+The active application is NestJS, TypeScript, PostgreSQL, and Prisma, in `nestjs/`.
+Laravel runtime code has been retired. Its database migrations remain as historical schema records and must not be replayed against the shared database.
 
-Current backend:
-- Laravel
-- PHP
-- PostgreSQL
-- Laravel Sanctum
-
-Target backend:
-- NestJS
-- TypeScript
-- PostgreSQL
-- Prisma ORM (proposed)
-
-Laravel is the reference implementation.
-NestJS is the target implementation.
-
-Both backends must coexist during migration.
+Verified API behavior and migration decisions are recorded in `docs/ai/migration-audit.md` and covered by Nest tests.
 
 ## 2. Architecture Principles
 
@@ -53,8 +39,7 @@ Ticket priorities:
 - HIGH
 - URGENT
 
-Business rules must be verified against Laravel.
-Never invent behavior.
+Preserve the verified rules documented in `docs/ai/migration-audit.md` and tests. Do not invent behavior. Laravel source code is no longer present; use the audit as the historical contract record.
 
 ## 4. Database Safety
 
@@ -68,14 +53,15 @@ Never invent behavior.
 - Never expose credentials.
 - Never commit .env files.
 
-## 5. Migration Rules
+## 5. API Rules
 
 - Preserve existing API behavior.
 - Preserve HTTP status codes where possible.
 - Preserve validation rules.
 - Preserve authorization behavior.
 - Preserve response structure.
-- Laravel must remain untouched unless explicitly requested.
+- NestJS owns the active API routes.
+- Keep retired Laravel runtime code removed. Preserve Laravel migration files as historical schema records.
 
 ## 6. Security
 

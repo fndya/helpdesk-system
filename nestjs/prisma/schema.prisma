@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           BigInt        @id @default(autoincrement())
+  name         String        @db.VarChar(255)
+  email        String        @unique(map: "users_email_unique") @db.VarChar(255)
+  password     String        @db.VarChar(255)
+  role         String        @default("user") @db.VarChar(255)
+  createdAt    DateTime?     @map("created_at") @db.Timestamp(6)
+  updatedAt    DateTime?     @map("updated_at") @db.Timestamp(6)
+  tickets      Ticket[]
+  authSessions AuthSession[]
+
+  @@map("users")
+}
+
+model AuthSession {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    BigInt    @map("user_id")
+  familyId  String    @map("family_id") @db.Uuid
+  tokenHash String    @unique(map: "auth_sessions_token_hash_unique") @map("token_hash") @db.Char(64)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, map: "auth_sessions_user_id_foreign")
+
+  @@index([familyId], map: "auth_sessions_family_id_index")
+  @@index([userId], map: "auth_sessions_user_id_index")
+  @@map("auth_sessions")
+}
+
+model Ticket {
+  id          BigInt    @id @default(autoincrement())
+  title       String    @db.VarChar(255)
+  description String    @db.Text
+  status      String    @default("open") @db.VarChar(255)
+  priority    String    @default("medium") @db.VarChar(255)
+  userId      BigInt    @map("user_id")
+  createdAt   DateTime? @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime? @map("updated_at") @db.Timestamp(6)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Restrict, map: "tickets_user_id_foreign")
+
+  @@index([status], map: "tickets_status_index")
+  @@index([priority], map: "tickets_priority_index")
+  @@map("tickets")
+}

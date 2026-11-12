@@ -31,7 +31,7 @@ Implement secure authentication and authorization.
 
 ## Authorization
 
-Expected behavior to verify against Laravel:
+Verified historical ticket behavior (see `docs/ai/migration-audit.md`):
 
 - USER can access their own tickets.
 - SUPPORT can access all tickets.
@@ -41,13 +41,4 @@ Do not assume these rules apply to every resource without checking requirements.
 
 ## Token Strategy
 
-The existing Laravel implementation uses Sanctum.
-
-JWT is a proposed NestJS replacement, not an approved implementation decision.
-
-Before implementation:
-1. Analyze current authentication behavior.
-2. Identify compatibility requirements.
-3. Propose token lifecycle and expiration.
-4. Explain security tradeoffs.
-5. Wait for approval.
+The Laravel runtime has been retired. The approved NestJS strategy is a 15-minute access JWT and rotating 7-day refresh token. Logout revokes the refresh-token family; an issued access token may remain valid until expiry. Do not reintroduce Sanctum or change this lifecycle without an explicit request.
